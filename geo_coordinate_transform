@@ -1,0 +1,154 @@
+% JLK
+% Coordinate_Transform
+%
+% This is going to be a pretty basic program, but a starting point
+%
+% The plan is to create a cylinder and trace a total of 2 rays.
+% One ray is from the top corner of the image on the cylinder to the ground.
+% The second ray will be from the bottom corner of the image on the ground.
+%
+% The first ray will tell us our outer radius
+% The second ray will tell us the inner radius and the furthest side of the
+% image around the cylinder.
+%
+% 
+% Using that information, we can map the coordinate transform.
+
+
+
+
+% First, let's model the object
+
+% Our Shape is cylindrical withing a 3D Matrix.
+Cylinder_Radius = 40; % This is fairly arbitrary, update to real unit coord later;
+Viewing_Angle = 20; % Arbitrary, the viewing angle over ground (Top center of image)
+Viewing_Distance = 500; % From the center of the cylinder
+Image_Height = 50; % Distance from ground to the top of the image
+Y_Viewing_Distance = Viewing_Distance*tand(Viewing_Angle); %The vertical height between the viewer and the top of object.
+
+%I'm going to give a 90% CA.
+CA = 0.9;
+Image_Dimensions = [20,20]; % Arbitrary (length x width) Original image dimensions These will be taken from imported image later
+
+
+
+
+% Due to the geometry, the smaller the viewing angle, the larger the drawn
+% image
+
+
+%% Cylinder's Coordinates
+% First, We find out the coordinate from the center of the image to the outside
+% of the image in x and z.
+% This is simply (-r,0,-r) in (x,y,z) coordinates where (0,0,0) is the top
+% of the image. However, this is in image coordinates. In The physical
+% location on the cylinder, we need to find the change in z too.
+%
+
+% This is the distance from the top center to top edge of the 
+top_edge_length = sqrt(Cylinder_Radius^2+Cylinder_Radius^2); % distance to coordinate flat
+y_from_center = -tand(Viewing_Angle)*top_edge_length; % Vertical dip
+
+
+% This is the translational Distance.
+
+% Now, I need to find the plane that is tangential to that point on the cylinder.
+% I'm going to do that one coordinate at a time.
+% For the z coordinate, it's vertical, so the angle in z is still the angle
+% in z, just negative.
+% For the angle in y, it stays the same.
+% For the angle in x, it's a bit more complicated
+% The reflection plane will always be perpindicular to the radius of the
+% cylinder 
+% This means we can just map out the angle from the axis of the cylinder
+% over all angles
+
+
+% I'm going to define the CA from the point of the cylinder so that the
+% calculations are easier. I'm not sure if that changes anything
+
+% In other words, I'm just going to rotate the angle around and look at it
+% horizontally while observing the horizontal magnitude. Using our
+% coordinate system, this should be r*sin(theta). We also know the
+% horizontal distance, as defined, to be CA*r
+% therefore
+rTheta = asind(CA);
+
+x_from_center = CA*Cylinder_Radius; % Length by definition
+z_from_center = Cylinder_Radius-Cylinder_Radius*cosd(rTheta); % Length
+
+horiz_view_angle = atand(x_from_center/(Viewing_Distance+z_from_center));
+
+Comb_Tri_Angle = asind((sind(horiz_view_angle)*(Cylinder_Radius+...
+    Viewing_Distance))/Cylinder_Radius); % Law of Sines
+
+XZ_Reflection_Angle = 180-Comb_Tri_Angle+rTheta;
+
+Xcomponent = cos(XZ_Reflection_Angle);
+Zcomponent1 = sin(XZ_Reflection_Angle);
+
+YZ_Reflection_Angle = -Viewing_Angle;
+
+Ycomponent = sin(Viewing_Angle);
+Zcomponent2 = cos(Viewing_Angle);
+
+Vec_Reflect = [Xcomponent,0,Zcomponent1];
+Vec_Init = [0,Ycomponent,Zcomponent2];
+
+Ratio = -Zcomponent2/Zcomponent1;
+Ycomponent2 = Ycomponent*Ratio;
+
+Vec_Final = [Xcomponent,Ycomponent2,Zcomponent1];
+
+Unit_Ratio = 1/sqrt(Xcomponent^2+Ycomponent2^2+Zcomponent1);
+
+Vec_Final_Unit = Unit_Ratio*Vec_Final;
+
+Time = (Image_Height-y_from_center)/Ycomponent2;
+
+
+Distance = Time*[Xcomponent,Ycomponent2,Zcomponent1];
+
+% Now we have to shift the coordinate to be relative to the center of the
+% cylinder
+% I recommend fixing the consistensies with the coordinate systems later.
+
+Coordinates = [Xcomponent+x_from_center,Zcomponent1-z_from_center];
+Radius_coord_1 = sqrt(Coordinates(1)^2+Coordinates(2)^2);
+Angle_coord_1 = atand(Coordinates(2)/Coordinates(1));
+
+% Need a ray trace function , oml
+
+%Lower radius calculation now
+
+Lower_Viewing_Angle = tand((Y_Viewing_Distance+Image_Dimensions(2))/Viewing_Distance);
+Lower_Distance = Image_Height-Image_Dimensions(2);
+
+Inner_radius = Lower_Distance*tand(Lower_Viewing_Angle)+Cylinder_Radius;
+
+
+% Def some errors, will test later
+viscircles([0,0;0,0;0,0],[Radius_coord_1,Inner_radius,Cylinder_Radius]);
+
+
+% Now we have both the location on the cylindrical mirror, and the angle
+% of the light leaving that location. Now, we just have to solve for the
+% location the ray lands
+
+
+
+
+
+% We first find the incident angle. That is determined by the viewer.
+% It is then reflected off at an equal angle relative to the plane.
+% If we stick to a 90% aperture at the user distance, then the 
+
+
+% The image will be flat to the viewer, so the yz-angle will not change.
+% This just means that we need to find the change in the x angle from the
+% center.
+
+
+
+
+
